@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 .Draft
+example/
 renv.lock
 renv/

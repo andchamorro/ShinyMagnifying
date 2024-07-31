@@ -7,6 +7,8 @@
 # Define the network manager module
 networkManager <- function() {
   
+  # Initialize an empty flow
+  flow <- list()
   # Initialize an empty dataframe to store the nodes and edges
   nodes <- data.frame()
   edges <- data.frame()
@@ -27,9 +29,17 @@ networkManager <- function() {
     edge <- data.frame(from = from, to = to, port_from = port_from, port_to = port_to, type = type, stringsAsFactors = FALSE)
     edges <<- rbind(edges, edge)
   }
+  # Get step by id
+  getStep <- function(id){
+    tryCatch({
+      flow$steps[flow$steps$id == id, ]
+    }, error = function(e) {
+      NULL
+    })
+  }
   # Function to read from file
   fromFile <- function(file, format = c("json", "yaml")){
-    flow <- read_cwl(file = file, format = "json")
+    flow <<- read_cwl(file = file, format = "json")
     nodes <<- get_nodes(
       flow %>% parse_inputs(),
       flow %>% parse_outputs(),
@@ -63,9 +73,10 @@ networkManager <- function() {
   
   # Return the module functions
   list(
-    addNode = addNode,
-    removeNode = removeNode,
-    addEdge = addEdge,
+    getInputs = function() flow %>% parse_inputs,
+    getOutputs = function() flow %>% parse_outputs,
+    getSteps = function() flow %>% parse_steps,
+    getStep = getStep,
     fromFile = fromFile,
     visualizeNetwork = visualizeNetwork
   )

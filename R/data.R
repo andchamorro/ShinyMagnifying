@@ -3,6 +3,8 @@ dataInput <- function(id) {
   tagList(
     # Input: Select file
     fileInput(ns("file"), "Upload your raw count matrix"),
+    # Example files
+    selectInput(ns("example_file"), "Or select an example file", choices = list.files("example")),
     # Input: Specify parameters
     numericInput(ns("min_genes"), "Minimum number of genes detected per cell", value = 200),
     numericInput(ns("max_genes"), "Maximum number of genes detected per cell", value = 2500),
@@ -14,22 +16,26 @@ dataInput <- function(id) {
   )
 }
 
-dataServer <- function(id){
+dataServer <- function(id, shared_io){
   moduleServer(id, function(input, output, session) {
     # Load data
     data <- reactive({
-      req(input$file)
-      dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
-      archive_extract(input$file$datapath, file.path(tempdir(), dir_name))
-      data <- Read10X(file.path(tempdir(), dir_name))
+      if (!is.null(input$file)) {
+        # If file is uploaded
+        req(input$file)
+        dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
+        archive_extract(input$file$datapath, file.path(tempdir(), dir_name))
+        data <- Read10X(file.path(tempdir(), dir_name))
+      } else {
+        # If example file is selected
+        req(input$example_file)
+        data <- Read10X(file.path("example", input$example_file))
+      }
       return(data)
     })
-    
-    # Preprocessing
+    # Create seurat object
     reactive({
-      # Create Seurat object
       seurat_obj <- CreateSeuratObject(counts = data())
-      seurat_obj <- PercentageFeatureSet(seurat_obj, "^MT-", col.name = "percent_mito")
       return(list("obj" = seurat_obj, "min_genes" = input$min_genes, "max_genes" = input$max_genes, "max_mito" = input$max_mito))
     })
   })
