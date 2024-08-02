@@ -19,7 +19,7 @@ normalizationServer <- function(id, shared_io) {
         data_input$obj <- FindVariableFeatures(data_input$obj)
         data_input$obj <- ScaleData(data_input$obj)
         # PCA
-        data_input$obj <- RunPCA(data_input$obj, npcs = 2)
+        data_input$obj <- RunPCA(data_input$obj, features = VariableFeatures(object = data_input$obj))
         return(data_input)
       })
       

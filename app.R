@@ -1,4 +1,8 @@
 # Ensure the necessary package is installed
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if (!require("GEOquery", quietly = TRUE))
+  BiocManager::install("GEOquery")
 if (!require(visNetwork)) {
   install.packages("visNetwork")
 }
@@ -11,6 +15,7 @@ if (!require(jsonlite)) {
 
 # Load necessary libraries
 library(archive)
+library(GEOquery)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
@@ -81,8 +86,8 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$cwl_network_selected, {
+    nav_select("container", "Step selected")
     selected_node <- input$cwl_network_selected
-    print(names(shared_io))
     if (!is.null(selected_node) && selected_node %in% steps$id) {
       output$dynamic_module <- renderUI({
         card(
