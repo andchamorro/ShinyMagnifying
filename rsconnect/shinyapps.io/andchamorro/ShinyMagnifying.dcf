@@ -1,0 +1,13 @@
+name: ShinyMagnifying
+title: ShinyMagnifying
+username: andchamorro
+account: andchamorro
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 12402304
+bundleId: 8941494
+url: https://andchamorro.shinyapps.io/ShinyMagnifying/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|.Rprofile|README.md|renv.lock|.Draft
