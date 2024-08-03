@@ -68,7 +68,7 @@ We welcome contributions to ShinyMagnifying! If you have any suggestions, bug re
 
 ## License {#license}
 
-ShinyMagnifying is licensed under the MIT License. See the LICENSE file for more details.
+ShinyMagnifying is licensed under the GNU General Public License (GPL) License. See the LICENSE file for more details.
 
 ## Acknowledgements {#acknowledgements}
 
