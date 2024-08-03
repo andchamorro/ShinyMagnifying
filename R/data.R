@@ -51,7 +51,7 @@ dataServer <- function(id, shared_io){
         dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
         # Auto-detect file type and read data accordingly
         if (grepl("\\.tar.gz$", input$file$name)) {
-          archive_extract(input$file$datapath, file.path(tempdir(), dir_name))
+          untar(input$file$datapath, exdir = file.path(tempdir(), dir_name))
           data <- Read10X(file.path(tempdir(), dir_name))
         } else if (grepl("\\.h5$", input$file$name)) {
           data <- Read10X_h5(file.path(tempdir(), dir_name)) 

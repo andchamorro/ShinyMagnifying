@@ -1,9 +1,13 @@
 # UI Module for Clustering and Biomarker Identification
 clusteringUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    plotOutput(ns("umap_plot")),
-    tableOutput(ns("biomarkers_table"))
+  # tagList(
+  #   plotOutput(ns("umap_plot")),
+  #   DTOutput(ns("biomarkers_table"))
+  # )
+  fluidRow(
+    column(6, dataTableOutput(ns("biomarkers_table"))),
+    column(6, plotOutput(ns("umap_plot"), height = 500))
   )
 }
 
@@ -35,7 +39,7 @@ clusteringServer <- function(id, shared_io) {
       })
       
       # Output: Biomarkers table
-      output$biomarkers_table <- renderTable({
+      output$biomarkers_table <- renderDT({
         biomarkers()$biomarkers
       })
       

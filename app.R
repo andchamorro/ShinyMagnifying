@@ -1,44 +1,30 @@
-# Ensure the necessary package is installed
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-if (!require("GEOquery", quietly = TRUE))
-  BiocManager::install("GEOquery")
-if (!require(visNetwork)) {
-  install.packages("visNetwork")
-}
-if (!require(Seurat)) {
-  install.packages("Seurat")
-}
-if (!require(jsonlite)) {
-  install.packages("tidycwl")
-}
-
 # Load necessary libraries
-library(archive)
-library(GEOquery)
-library(dplyr)
-library(tidyr)
-library(tidyverse)
 library(shiny)
 library(bslib)
+library(dplyr)
+library(DT)
 library(visNetwork)
 library(Seurat)
+library(BiocManager)
+options(repos = BiocManager::repositories())
+library(GEOquery)
+
+# Load the module file
+# sourceDir("R")
 
 options(shiny.maxRequestSize=30*1024^2)
-sourceDir <- function(path, trace = TRUE, ...) {
-  op <- options(); on.exit(options(op)) # to reset after each
-  for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
-    if(trace) cat(nm,":")
-    source(file.path(path, nm), ...)
-    if(trace) cat("\n")
-    options(op)
-  }
-}
-# Load the module file
-sourceDir("R")
-
 # Define UI for application
 ui <- page_fluid(
+  tags$head(
+    tags$style("
+      .card_nav {
+        resize: vertical;
+      }
+      .card_plot {
+        resize: both;
+      }
+    ")
+  ),
   # Application title
   titlePanel("ShinyMagnifying"),
   list(
@@ -55,7 +41,12 @@ ui <- page_fluid(
     ),
     card(
       card_header("Navigation Network"),
-      visNetworkOutput("cwl_network")
+      height = "30%",
+      fill = FALSE,
+      class = 'card_nav',
+      card_body(
+        visNetworkOutput("cwl_network")
+      )
     )
   )
 )
@@ -69,7 +60,7 @@ server <- function(input, output, session) {
   # shared_io <- reactive_wl_io(manager$getInputs(), manager$getOutputs(), manager$getSteps())
   shared_io <- reactiveValues()
   
-  steps <- manager$getSteps() %>% select(id, out, module, label) %>% unnest_wider(c(out, module), names_sep=".") %>% drop_na()
+  steps <- manager$getSteps() %>% select(id, out, module, label) %>% unnest_wider(c("out", "module"), names_sep=".") %>% drop_na()
   
   # Store the reactive outputs for each module
   module_outputs <- list()
@@ -91,8 +82,13 @@ server <- function(input, output, session) {
     if (!is.null(selected_node) && selected_node %in% steps$id) {
       output$dynamic_module <- renderUI({
         card(
+          height = "30%",
+          fill = FALSE,
+          class = 'card_plot',
           card_header(steps[steps$id == selected_node, "label"]),
-          do.call(steps[steps$id == selected_node, ][["module.ui"]], list(id = selected_node))
+          card_body(
+            do.call(steps[steps$id == selected_node, ][["module.ui"]], list(id = selected_node))
+          )
         )
       })
     }
