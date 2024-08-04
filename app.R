@@ -13,41 +13,52 @@ library(GEOquery)
 # sourceDir("R")
 
 options(shiny.maxRequestSize=30*1024^2)
+
 # Define UI for application
-ui <- page_fluid(
-  tags$head(
-    tags$style("
-      .card_nav {
-        resize: vertical;
-      }
-      .card_plot {
-        resize: both;
-      }
-    ")
+ui <- navbarPage(
+  title = "ShinyMagnifying",
+  theme = bs_theme(version = 4),
+  collapsible = TRUE,
+  tabPanel("Home",
+           page_fluid(
+             tags$head(
+               tags$style("
+               .card_nav { resize: vertical; }
+               .card_plot { resize: both; }")
+               ),
+             list(
+               navset_tab(
+                 id = "container",
+                 nav_panel("Workflow", card(
+                   fileInput("wl_file", "Choose a file"),
+                   selectInput("wl_file_options", 
+                               "Choose an option", 
+                               choices = list.files("workflows"),
+                               selected = NULL)
+                 )),
+                 nav_panel("Step selected", uiOutput("dynamic_module"))
+               ),
+               card(
+                 card_header("Navigation Network"),
+                 height = "30%",
+                 fill = FALSE,
+                 class = 'card_nav',
+                 card_body(
+                   visNetworkOutput("cwl_network")
+                 )
+               )
+             )
+           )
   ),
-  # Application title
-  titlePanel("ShinyMagnifying"),
-  list(
-    navset_tab(
-      id = "container",
-      nav_panel("Workflow", card(
-        fileInput("wl_file", "Choose a file"),
-        selectInput("wl_file_options", 
-                    "Choose an option", 
-                    choices = list.files("workflows"),
-                    selected = NULL)
-      )),
-      nav_panel("Step selected", uiOutput("dynamic_module"))
-    ),
-    card(
-      card_header("Navigation Network"),
-      height = "30%",
-      fill = FALSE,
-      class = 'card_nav',
-      card_body(
-        visNetworkOutput("cwl_network")
-      )
-    )
+  navbarMenu("Help",
+             tabPanel("About", page_fluid(
+               h2("About ShinyMagnifying"),
+               p("This application is designed to help visualize and manage workflows.")
+             )),
+             tabPanel("Documentation", page_fluid(
+               h2("Documentation"),
+               p("Here you can provide documentation or links to documentation.")
+             ))
   )
 )
 
