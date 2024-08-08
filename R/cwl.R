@@ -1,90 +1,47 @@
-# Usage
-# manager <- networkManager()
-# manager$addNode(1, "Node 1")
-# manager$addNode(2, "Node 2")
-# manager$visualizeNetwork()
-
-# Define the network manager module
-networkManager <- function() {
-  
-  # Initialize an empty flow
-  flow <- list()
-  # Initialize an empty dataframe to store the nodes and edges
-  nodes <- data.frame()
-  edges <- data.frame()
-  
-  # Function to add a node to the network
-  addNode <- function(id, label, group, ui, server) {
-    node <- data.frame(id = id, label = label, group = group, ui = ui, server = server, stringsAsFactors = FALSE)
-    nodes <<- rbind(nodes, node)
-  }
-  
-  # Function to remove a node from the network
-  removeNode <- function(id) {
-    nodes <<- nodes[!(nodes$id == id), ]
-  }
-  
-  # Function to add a dependencies edges
-  addEdge <- function(from, to, port_from, port_to, type) {
-    edge <- data.frame(from = from, to = to, port_from = port_from, port_to = port_to, type = type, stringsAsFactors = FALSE)
-    edges <<- rbind(edges, edge)
-  }
-  # Get step by id
-  getStep <- function(id){
-    tryCatch({
-      flow$steps[flow$steps$id == id, ]
-    }, error = function(e) {
-      NULL
-    })
-  }
-  # Function to read from file
-  fromFile <- function(file, format = c("json", "yaml")){
-    if (length(flow) > 0) flow <<- list()
-    flow <<- read_cwl(file = file, format = "json")
-    nodes <<- get_nodes(
-      flow %>% parse_inputs(),
-      flow %>% parse_outputs(),
-      flow %>% parse_steps()
-    )
-    edges <<- get_edges(
-      flow %>% parse_outputs(),
-      flow %>% parse_steps()
-    )
-  }
-  
-  # Function to visualize the network
-  visualizeNetwork <- function(hierarchical = TRUE, direction = "LR", separation = 300,
-                               palette = c("#C3C3C3", "#FF8F00", "#00AAA8"),
-                               width = "300%", height = "%100") {
-    visNetwork(nodes = nodes, edges = edges, width = width) %>%
-      visNodes(borderWidth = 2) %>%
-      visEdges(
-        arrows = list(to = list(enabled = TRUE, scaleFactor = 0.5)),
-        smooth = list(type = "cubicBezier", roundness = 0.6)
-      ) %>%
-      visGroups(groupname = "input", color = palette[1], shadow = list(enabled = TRUE)) %>%
-      visGroups(groupname = "output", color = palette[2], shadow = list(enabled = TRUE)) %>%
-      visGroups(groupname = "step", color = palette[3], shadow = list(enabled = TRUE)) %>%
-      visHierarchicalLayout(
-        enabled = hierarchical,
-        direction = direction, levelSeparation = separation,
-        sortMethod = "directed",
-      )
-  }
-  
-  # Return the module functions
-  list(
-    label = flow %>% get_label(),
-    getInputs = function() flow %>% parse_inputs,
-    getOutputs = function() flow %>% parse_outputs,
-    getSteps = function() flow %>% parse_steps,
-    getStep = getStep,
-    fromFile = fromFile,
-    visualizeNetwork = visualizeNetwork
+# Define the cwl network manager module
+# Function to visualize the network
+visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separation = 300,
+                             palette = c("#C3C3C3", "#FF8F00", "#00AAA8"),
+                             width = "300%", height = "%100") {
+  nodes <- get_nodes(
+    cwl %>% parse_inputs(),
+    cwl %>% parse_outputs(),
+    cwl %>% parse_steps()
   )
+  edges <- get_edges(
+    cwl %>% parse_outputs(),
+    cwl %>% parse_steps()
+  )
+  visNetwork(nodes = nodes, edges = edges, width = width) %>%
+    visNodes(borderWidth = 2) %>%
+    visEdges(
+      arrows = list(to = list(enabled = TRUE, scaleFactor = 0.5)),
+      smooth = list(type = "cubicBezier", roundness = 0.6)
+    ) %>%
+    visGroups(groupname = "input", color = palette[1], shadow = list(enabled = TRUE)) %>%
+    visGroups(groupname = "output", color = palette[2], shadow = list(enabled = TRUE)) %>%
+    visGroups(groupname = "step", color = palette[3], shadow = list(enabled = TRUE)) %>%
+    visHierarchicalLayout(
+      enabled = hierarchical,
+      direction = direction, levelSeparation = separation,
+      sortMethod = "directed",
+    )
 }
 
+# Return the module functions
+# list(
+#   label = flow %>% get_label(),
+#   getInputs = function() flow %>% parse_inputs,
+#   getOutputs = function() flow %>% parse_outputs,
+#   getSteps = function() flow %>% parse_steps,
+#   getStep = getStep,
+#   fromFile = fromFile,
+#   visualizeNetwork = visualizeNetwork
+# )
+
+# Function to read from file
 read_cwl <- function(file, format = c("json", "yaml")) {
+  format <- ifelse(!is.list(format), format, tools::file_ext(file))
   format <- match.arg(format)
   if (format == "yaml") {
     return(yaml::read_yaml(file))
@@ -154,7 +111,7 @@ get_nodes <- function(inputs, outputs, steps) {
 }
 
 edges_outputs <- function(output_source, outputs) {
-
+  
   df <- data.frame(
     "from" = character(),
     "to" = character(),

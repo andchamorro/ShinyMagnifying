@@ -77,21 +77,20 @@ ui <- page_navbar(
 
 # Define server logic
 server <- function(input, output, session) {
-  manager <- networkManager()
-  
+  cwl_manager <- list()
   observe({
     if (!is.null(input$wl_file)) {
       req(input$wl_file)
-      manager$fromFile(file = input$wl_file$datapath)
+      cwl_manager <- read_cwl(file = input$wl_file$datapath)
     } else if (!is.null(input$wl_file_options)) {
-      manager$fromFile(file.path("workflows", input$wl_file_options))
+      cwl_manager <- read_cwl(file = file.path("workflows", input$wl_file_options))
     }
     
-    if (!is.null(manager$getSteps())) {
+    if (length(cwl_manager) > 0) {
       # Create reactive shared steps inputs and outputs
       shared_io <- reactiveValues()
       
-      steps <- manager$getSteps() %>% select(id, out, module, label) %>% unnest_wider(c("out", "module"), names_sep=".") %>% drop_na()
+      steps <- cwl_manager %>% parse_steps() %>% select(id, out, module, label) %>% unnest_wider(c("out", "module"), names_sep=".") %>% drop_na()
       
       # Store the reactive outputs for each module
       module_outputs <- list()
@@ -103,7 +102,7 @@ server <- function(input, output, session) {
       }
       
       output$cwl_network <- renderVisNetwork({
-        manager$visualizeNetwork() %>%
+        cwl_manager %>% visualizeNetwork() %>%
           visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE)
       })
       
