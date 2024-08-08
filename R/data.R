@@ -37,46 +37,66 @@ dataInput <- function(id) {
     # Example files
     selectInput(ns("example_file"), "Or select an example file",
                 choices = list.files("example"),
-                selected = "pbmc3k_filtered_gene_bc_matrices")
+                selected = "pbmc3k_filtered_gene_bc_matrices"),
+    downloadButton(ns("download_seurat"), "Download Seurat")
   )
 }
 
 dataServer <- function(id, shared_io){
   moduleServer(id, function(input, output, session) {
     # Load data
-    data <- reactive({
+    load_data <- reactive({
       if (!is.null(input$file)) {
         # If file is uploaded
         req(input$file)
-        dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
         # Auto-detect file type and read data accordingly
-        if (grepl("\\.tar.gz$", input$file$name)) {
-          untar(input$file$datapath, exdir = file.path(tempdir(), dir_name))
-          data <- Read10X(file.path(tempdir(), dir_name))
-        } else if (grepl("\\.h5$", input$file$name)) {
-          data <- Read10X_h5(file.path(tempdir(), dir_name)) 
-        } else if (grepl("\\.tiff$|\\.png$|\\.jpg$", input$file$name)) {
-          data <- Read10X_Image(image.dir = file.path(tempdir(), dir_name))
+        if (grepl("\\.(Rds|rds)$", input$file$name)) {
+          seurat_obj <- readRDS(input$file$datapath)
         } else {
-          # Unsupported file
+          if (grepl("\\.tar.gz$", input$file$name)) {
+            dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
+            untar(input$file$datapath, exdir = file.path(tempdir(), dir_name))
+            data <- Read10X(file.path(tempdir(), dir_name))
+          } else if (grepl("\\.h5$", input$file$name)) {
+            data <- Read10X_h5(input$file$datapath) 
+          } else if (grepl("\\.tiff$|\\.png$|\\.jpg$", input$file$name)) {
+            dir_name <- sub(pattern = "(.*)\\..*$", replacement = "\\1", input$file$name)
+            untar(input$file$datapath, exdir = file.path(tempdir(), dir_name))
+            data <- Read10X_Image(image.dir = file.path(tempdir(), dir_name))
+          } else {
+            # Unsupported file
+          }
+          # Create seurat object
+          seurat_obj <- CreateSeuratObject(counts = data, project = input$pname)
         }
       } else if (nzchar(input$geo)) {
         query <- getGEOSuppFiles(input$geo, baseDir=tempdir(), fetch_files = TRUE, filter_regex = "matrix\\.mtx|barcodes\\.tsv|genes\\.tsv")
         rename_files(file.path(tempdir(), input$geo))
         data <- Read10X(file.path(tempdir(), input$geo))
+        # Create seurat object
+        seurat_obj <- CreateSeuratObject(counts = data, project = input$pname)
       } else {
         # If example file is selected
         req(input$example_file)
         data <- Read10X(file.path("example", input$example_file))
+        # Create seurat object
+        seurat_obj <- CreateSeuratObject(counts = data, project = input$pname)
       }
-      return(data)
-    })
-    
-    # Create seurat object
-    reactive({
-      seurat_obj <- CreateSeuratObject(counts = data(), project = input$pname)
       return(list("obj" = seurat_obj))
     })
+    
+    output$download_seurat <- downloadHandler(
+      filename = function() {
+        paste0("seurat_obj", ".rds")
+      },
+      content = function(file) {
+        alertNoData(load_data())
+        seurat_obj <- isolate(load_data()$obj)
+        saveRDS(seurat_obj, file = file)
+      }
+    )
+    
+    return(load_data)
   })
 }
 

@@ -43,3 +43,31 @@ unnest_wider <- function(df, cols, names_sep = ".") {
   
   return(result)
 }
+alertNoData <- function(data)
+{
+  tryCatch(
+    data,
+    error = function(e)
+    { 
+      shinyalert(
+        "No data available.", 
+        paste("
+          <br/>
+          <p>
+            Ensure you have selected a region and have clicked
+            <b>Apply Geographic Filter</b>
+            and
+            <b>Apply Map Settings</b>
+          </p>
+          <br/>
+          <p>
+            NOTE: An HTML file will be downloaded containing an error message.
+          </p>
+          "),
+        type = "error",
+        html = TRUE
+      )
+      stop(safeError("No data available."))
+    }
+  )
+}
