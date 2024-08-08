@@ -5,7 +5,7 @@ account: andchamorro
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12402304
-bundleId: 8941494
+bundleId: 8959339
 url: https://andchamorro.shinyapps.io/ShinyMagnifying/
 version: 1
 asMultiple: FALSE

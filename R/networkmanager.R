@@ -39,6 +39,7 @@ networkManager <- function() {
   }
   # Function to read from file
   fromFile <- function(file, format = c("json", "yaml")){
+    if (length(flow) > 0) flow <<- list()
     flow <<- read_cwl(file = file, format = "json")
     nodes <<- get_nodes(
       flow %>% parse_inputs(),
@@ -54,8 +55,8 @@ networkManager <- function() {
   # Function to visualize the network
   visualizeNetwork <- function(hierarchical = TRUE, direction = "LR", separation = 300,
                                palette = c("#C3C3C3", "#FF8F00", "#00AAA8"),
-                               width = "100%", height = 600) {
-    visNetwork(nodes = nodes, edges = edges) %>%
+                               width = "300%", height = "%100") {
+    visNetwork(nodes = nodes, edges = edges, width = width) %>%
       visNodes(borderWidth = 2) %>%
       visEdges(
         arrows = list(to = list(enabled = TRUE, scaleFactor = 0.5)),
@@ -73,6 +74,7 @@ networkManager <- function() {
   
   # Return the module functions
   list(
+    label = flow %>% get_label(),
     getInputs = function() flow %>% parse_inputs,
     getOutputs = function() flow %>% parse_outputs,
     getSteps = function() flow %>% parse_steps,
@@ -90,6 +92,13 @@ read_cwl <- function(file, format = c("json", "yaml")) {
   if (format == "json") {
     return(jsonlite::fromJSON(file))
   }
+}
+
+get_label <- function(x) {
+  if (is.null(x$label)) {
+    return(NULL)
+  }
+  return(x$label)
 }
 
 parse_inputs <- function(x) {
