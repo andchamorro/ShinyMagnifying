@@ -1,5 +1,16 @@
-# Define the cwl network manager module
-# Function to visualize the network
+#' Define the cwl network manager module
+#'
+#' @param cwl A CWL object.
+#' @param hierarchical Logical, whether to use hierarchical layout.
+#' @param direction Character, direction of the hierarchical layout.
+#' @param separation Numeric, level separation in the hierarchical layout.
+#' @param palette Character vector, colors for input, output, and step nodes.
+#' @param width Character, width of the network visualization.
+#' @param height Character, height of the network visualization.
+#' @return A visNetwork object.
+#' @export
+#' @examples
+#' visualizeNetwork(cwl)
 visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separation = 300,
                              palette = c("#C3C3C3", "#FF8F00", "#00AAA8"),
                              width = "300%", height = "%100") {
@@ -28,18 +39,14 @@ visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separat
     )
 }
 
-# Return the module functions
-# list(
-#   label = flow %>% get_label(),
-#   getInputs = function() flow %>% parse_inputs,
-#   getOutputs = function() flow %>% parse_outputs,
-#   getSteps = function() flow %>% parse_steps,
-#   getStep = getStep,
-#   fromFile = fromFile,
-#   visualizeNetwork = visualizeNetwork
-# )
-
-# Function to read from file
+#' Read CWL from file
+#'
+#' @param file Character, path to the CWL file.
+#' @param format Character, format of the CWL file ("json" or "yaml").
+#' @return A list representing the CWL content.
+#' @export
+#' @examples
+#' read_cwl("path/to/file.cwl")
 read_cwl <- function(file, format = c("json", "yaml")) {
   format <- ifelse(!is.list(format), format, tools::file_ext(file))
   format <- match.arg(format)
@@ -51,6 +58,13 @@ read_cwl <- function(file, format = c("json", "yaml")) {
   }
 }
 
+#' Get label from CWL object
+#'
+#' @param x A CWL object.
+#' @return Character, the label of the CWL object.
+#' @export
+#' @examples
+#' get_label(cwl_object)
 get_label <- function(x) {
   if (is.null(x$label)) {
     return(NULL)
@@ -58,6 +72,13 @@ get_label <- function(x) {
   return(x$label)
 }
 
+#' Parse inputs from CWL object
+#'
+#' @param x A CWL object.
+#' @return Data frame of inputs.
+#' @export
+#' @examples
+#' parse_inputs(cwl_object)
 parse_inputs <- function(x) {
   if (is.null(x$inputs)) {
     return(NULL)
@@ -67,6 +88,13 @@ parse_inputs <- function(x) {
   return(inputs)
 }
 
+#' Parse outputs from CWL object
+#'
+#' @param x A CWL object.
+#' @return Data frame of outputs.
+#' @export
+#' @examples
+#' parse_outputs(cwl_object)
 parse_outputs <- function(x) {
   if (is.null(x$outputs)) {
     return(NULL)
@@ -77,17 +105,30 @@ parse_outputs <- function(x) {
   return(outputs)
 }
 
+#' Parse steps from CWL object
+#'
+#' @param x A CWL object.
+#' @return List of steps.
+#' @export
+#' @examples
+#' parse_steps(cwl_object)
 parse_steps <- function(x) {
   if (is.null(x$steps)) {
     return(NULL)
   }
-  # since this can be a JSON list or dict, we need to deal
-  # with each case separately in downstream functions
   return(x$steps)
 }
 
+#' Get nodes for network visualization
+#'
+#' @param inputs Data frame of inputs.
+#' @param outputs Data frame of outputs.
+#' @param steps List of steps.
+#' @return Data frame of nodes.
+#' @export
+#' @examples
+#' get_nodes(inputs, outputs, steps)
 get_nodes <- function(inputs, outputs, steps) {
-  # nodes - input/output nodes on the side + step nodes in the middle
   nodes <- data.frame(
     "id" = c(
       inputs$id,
@@ -110,6 +151,14 @@ get_nodes <- function(inputs, outputs, steps) {
   nodes
 }
 
+#' Get edges from outputs
+#'
+#' @param output_source Character vector of output sources.
+#' @param outputs Data frame of outputs.
+#' @return Data frame of edges.
+#' @export
+#' @examples
+#' edges_outputs(output_source, outputs)
 edges_outputs <- function(output_source, outputs) {
   
   df <- data.frame(
@@ -140,6 +189,14 @@ edges_outputs <- function(output_source, outputs) {
   return(df)
 }
 
+#' Get edges from steps
+#'
+#' @param steps_in List of step inputs.
+#' @param steps List of steps.
+#' @return Data frame of edges.
+#' @export
+#' @examples
+#' edges_steps(steps_in, steps)
 edges_steps <- function(steps_in, steps) {
   df <- data.frame(
     "from" = character(),
@@ -150,7 +207,6 @@ edges_steps <- function(steps_in, steps) {
     stringsAsFactors = FALSE
   )
   
-  # replacing every null with NA so that is.na() won't give logical(0)
   for (i in 1:length(steps_in)) {
     steps_in[[i]][sapply(steps_in[[i]]$source, is.null), "source"] <- NA
   }
@@ -161,10 +217,7 @@ edges_steps <- function(steps_in, steps) {
       key_vec <- strsplit(key, "/")[[1]]
       
       val <- unlist(steps_in[[i]][j, "source"])
-      # iterate over the value list (if any) because one
-      # port j of node i could receive inputs from multiple upstream ports
       for (k in 1:length(val)) {
-        # only attach when the edge source is not NULL or NA
         if (!is.na(val[k])) {
           if (grepl("/", val[k])) {
             val_vec <- strsplit(val[k], "/")[[1]]
@@ -194,6 +247,14 @@ edges_steps <- function(steps_in, steps) {
   return(df)
 }
 
+#' Get edges for network visualization
+#'
+#' @param outputs Data frame of outputs.
+#' @param steps List of steps.
+#' @return Data frame of edges.
+#' @export
+#' @examples
+#' get_edges(outputs, steps)
 get_edges <- function(outputs, steps) {
   output_source <- unlist(outputs[["outputSource"]])
   df_edges_outputs <- edges_outputs(output_source, outputs)
@@ -202,11 +263,18 @@ get_edges <- function(outputs, steps) {
   steps_in <- steps[[in_name]]
   df_edges_steps <- edges_steps(steps_in, steps)
   
-  # combine edges from outputs and steps
   edges <- rbind(df_edges_steps, df_edges_outputs)
   
   edges
 }
+
+#' Sanitize node IDs
+#'
+#' @param id Character vector of node IDs.
+#' @return Character vector of sanitized node IDs.
+#' @export
+#' @examples
+#' sanitize_id(c("#node1", "#node2"))
 
 sanitize_id <- function(id) {
   # Remove hashtag
