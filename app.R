@@ -35,7 +35,19 @@ ui <- page_navbar(
                   nav_panel("Step selected", uiOutput("dynamic_module"))
                 ),
                 card(
-                  card_header("Navigation Network"),
+                  card_header("Navigation Network",
+                              tooltip(
+                                bsicons::bs_icon("question-circle"),
+                                "Network in CWL format",
+                                placement = "right"
+                              ),
+                              popover(
+                                bsicons::bs_icon("gear", class = "ms-auto"),
+                                downloadButton("download_network", "Download Network"),
+                                title = "Plot settings"
+                              ),
+                              class = "d-flex align-items-center gap-1"
+                              ),
                   height = "800px",
                   fill = TRUE,
                   class = 'card_nav',
@@ -123,6 +135,16 @@ server <- function(input, output, session) {
           })
         }
       })
+      
+      output$download_network <- downloadHandler(
+        filename = function() {
+          paste0("cwl_workflow", ".json")
+        },
+        content = function(file) {
+          cwl_manager %>% write_cwl(file_path = file, pretty = TRUE)
+        }
+      )
+      
     }
   })
 }
