@@ -1,0 +1,121 @@
+{
+  "class": "Step",
+  "doc": "",
+  "label": "",
+  "id": "quality_control",
+  "namespace": {
+    "sms": "shinymagniying"
+  },
+  "inputs": [
+    {
+      "id": "output_name_prefix",
+      "type": "string?",
+      "label": "Output name prefix",
+      "doc": "If this parameter is not specified, sample id from metadata will be used as output name prefix."
+    },
+    {
+      "id": "min_cells",
+      "type": "int?",
+      "label": "Minimum number of cells",
+      "doc": "Minimum number of cells expressing a given gene in order to include that gene in the analysis (default = 3)."
+    },
+    {
+      "id": "min_features",
+      "type": "int?",
+      "label": "Minimum number of genes",
+      "doc": "Minimum number of genes expressed in a given cell in order to include that cell in the analysis (default = 200)."
+    },
+    {
+      "id": "project",
+      "type": "string?",
+      "label": "Project descriptor",
+      "doc": "Project descriptor."
+    },
+    {
+      "id": "min_UMIs",
+      "type": "int?",
+      "label": "Minimal number of UMI counts detected per cell",
+      "doc": "If the number of UMIs detected in the certain cell is below this threshold, that cell will be removed from further analysis (default = 500)."
+    },
+    {
+      "id": "max_UMIs",
+      "type": "int?",
+      "label": "Maximal number of UMI counts detected per cell",
+      "doc": "If the number of UMIs detected in the certain cell is above this threshold, that cell will be removed from further analysis (default = Infinity)."
+    },
+    {
+      "id": "min_genes",
+      "type": "int?",
+      "label": "Minimal number of genes detected per cell",
+      "doc": "If the number of genes (features) detected in the certain cell is below this threshold, that cell will be removed from further analysis (default = 300)."
+    },
+    {
+      "id": "max_genes",
+      "type": "int?",
+      "label": "Maximal number of genes detected per cell",
+      "doc": "If the number of genes (features) detected in the certain cell is above this threshold, that cell will be removed from further analysis (default = Infinity)."
+    },
+    {
+      "id": "mt_percent",
+      "type": "float?",
+      "label": "Maximum percentage of mitochondrial genes",
+      "doc": "Cells with a percentage of mitochondrial genes higher than this threshold will be removed from further analysis (default = 20)."
+    },
+    {
+      "id": "novelty_score",
+      "type": "float?",
+      "label": "Novelty score (complexity)",
+      "doc": "Contamination with low complexity cell types (like red blood cells) can be detected via this metric. It is calculated as log10GenesPerUMI. By default, this parameter is not active. To activate it just set a value between 0 and 1, and all the cells with complexity scores lower than the chosen value will be removed from further analysis."
+    }
+  ],
+  "outputs": [],
+  "steps": [
+    {
+      "id": "quality_control",
+      "in": [
+        {
+          "id": "in_seurat_object",
+          "source": "load_single_cell_data/out_seurat_object"
+        },
+        {
+          "id": "min_UMIs",
+          "source": "min_UMIs"
+        },
+        {
+          "id": "max_UMIs",
+          "source": "max_UMIs"
+        },
+        {
+          "id": "min_genes",
+          "source": "min_genes"
+        },
+        {
+          "id": "max_genes",
+          "source": "max_genes"
+        },
+        {
+          "id": "mt_percent",
+          "source": "mt_percent"
+        },
+        {
+          "id": "novelty_score",
+          "source": "novelty_score"
+        }
+      ],
+      "out": [
+        {
+          "id": "out_filtered_seurat"
+        }
+      ],
+      "module": [
+        {
+        "id": "quality_control",
+        "ui": "qualitycontrolUI",
+        "server": "qualitycontrolServer"
+      }
+      ],
+      "run": {},
+      "label": " Quality Control"
+    }
+  ]
+}

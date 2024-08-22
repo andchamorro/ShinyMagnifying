@@ -1,0 +1,34 @@
+{
+  "class": "Step",
+  "doc": "",
+  "label": "",
+  "id": "normalisation_transformation_and_pca",
+  "namespace": {
+    "sms": "shinymagniying"
+  },
+  "inputs": [],
+  "outputs": [],
+  "steps": [
+    {
+      "id": "normalisation_transformation_and_pca",
+      "in": [
+        {
+          "id": "in_filtered_seurat",
+          "source": "quality_control/out_filtered_seurat"
+        }
+      ],
+      "out": [
+        {
+          "id": "out_normalized_seurat"
+        }
+      ],
+      "module": [{
+        "id": "normalisation_transformation_and_pca",
+        "ui": "normalizationUI",
+        "server": "normalizationServer"
+      }],
+      "run": {},
+      "label": "Normalisation Transformation and PCA"
+    }
+  ]
+}

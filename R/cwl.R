@@ -13,7 +13,8 @@
 #' visualizeNetwork(cwl)
 visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separation = 300,
                              palette = c("#C3C3C3", "#FF8F00", "#00AAA8"),
-                             width = "300%", height = "%100") {
+                             font = c(color = "#343434", size = 18, "face" = "arial", "strokeWidth" = 2, "strokeColor" = "#DEE2E6"),
+                             width = "300%", height = "100%"){
   nodes <- get_nodes(
     cwl %>% parse_inputs(),
     cwl %>% parse_outputs(),
@@ -24,7 +25,7 @@ visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separat
     cwl %>% parse_steps()
   )
   visNetwork(nodes = nodes, edges = edges, width = width) %>%
-    visNodes(borderWidth = 2) %>%
+    visNodes(borderWidth = 2, font = font) %>%
     visEdges(
       arrows = list(to = list(enabled = TRUE, scaleFactor = 0.5)),
       smooth = list(type = "cubicBezier", roundness = 0.6)
@@ -36,7 +37,12 @@ visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separat
       enabled = hierarchical,
       direction = direction, levelSeparation = separation,
       sortMethod = "directed",
-    )
+    ) %>%
+    visOptions(highlightNearest = TRUE,
+               nodesIdSelection = list(
+                 enabled = TRUE,
+                 style = 'visibility: hidden; width: 150px; height: 26px'
+               ))
 }
 
 #' Read CWL from file
@@ -98,7 +104,7 @@ write_cwl <- function(cwl_content, file_path, format = c("json", "yaml"), ...) {
 #'
 #' @param flow A list representing the current CWL workflow in JSON format.
 #' @param step A list representing the new step (in JSON format) to be added to the workflow.
-#' @param target_position An integer specifying the position in the workflow where the new step should be added.
+#' @param target_step The target step after which the new step will be added.
 #'
 #' @return A list representing the updated CWL workflow in JSON format with the new step added.
 #'
@@ -123,22 +129,31 @@ write_cwl <- function(cwl_content, file_path, format = c("json", "yaml"), ...) {
 #' )
 #'
 #' # Append the new step at the 3rd position in the workflow
-#' updated_flow <- append_step_cwl(flow, new_step, 3)
+#' updated_flow <- append_step(flow, new_step, "target_step")
 #'
 #' # Save the updated workflow back to a JSON file
 #' write_cwl(updated_flow, "path_to_updated_cwl_workflow.json", "json", pretty = TRUE)
 #' }
 #'
 #' @export
-append_step_cwl <- function(flow, step, target_position) {
-  # Check if the target_position is within the valid range
-  if (target_position < 1 || target_position > length(flow$steps) + 1) {
-    stop("Invalid target position.")
-  }
+append_step <- function(flow, step, target_step = NULL) {
   
-  # Extract the inputs and outputs from the step
-  step_inputs <- step$inputs
-  step_outputs <- step$outputs
+  # Extract the inputs, outputs and steps
+  step_inputs <- step %>% parse_inputs()
+  step_outputs <- step %>% parse_outputs()
+  step_steps <- step %>% parse_steps()
+  
+  flow_inputs <- flow %>% parse_inputs()
+  flow_outputs <- flow %>% parse_outputs()
+  flow_steps <- flow %>% parse_steps()
+  
+  if (is.null(target_step) || target_step == "") {
+    # Just append to the end of the flow
+    target_position <- nrow(flow_steps)
+  } else {
+    # Find the position of the target step
+    target_position <- which.max(flow_steps$id == target_step)
+  }
   
   # Function to extract suffix before "in_" or "out_"
   extract_suffix <- function(id, pattern) {
@@ -146,59 +161,82 @@ append_step_cwl <- function(flow, step, target_position) {
   }
   
   # Handle inputs
-  for (i in seq_along(step_inputs)) {
-    input_id <- step_inputs[[i]]$id
-    input_suffix <- extract_suffix(input_id, "in_.*$")
-    
+  new_inputs <- data.frame()
+  for (i in 1:nrow(step_inputs)) {
+    input_id <- step_inputs[i, ]$id
+    input_suffix <- extract_suffix(input_id, "in_")
     # Check if the input matches the output of any existing step
     found_match <- FALSE
-    for (j in seq_along(flow$steps)) {
-      for (k in seq_along(flow$steps[[j]]$out)) {
-        output_id <- flow$steps[[j]]$out[[k]]$id
-        output_suffix <- extract_suffix(output_id, "out_.*$")
-        
+    j <- 1
+    while(!found_match && (j <= nrow(flow_steps))) {
+      j_step_id <- flow_steps[j, ]$id
+      j_step_out <- as.data.frame(flow_steps[j, ]$out)
+      k <- 1
+      while(!found_match && (k <= nrow(j_step_out))) {
+        output_id <- j_step_out[k, ]
+        output_suffix <- extract_suffix(output_id, "out_")
         if (input_suffix == output_suffix) {
-          step_inputs[[i]]$source <- paste(flow$steps[[j]]$id, output_id, sep = "/")
+          step_inputs[i, ]$source <- paste(j_step_id, output_id, sep = "/")
           found_match <- TRUE
           break
         }
+        k <- k + 1
       }
       if (found_match) break
+      j <- j + 1
     }
-    
     # If no match found, check if the input matches an existing input in the workflow
-    if (!found_match) {
-      for (j in seq_along(flow$inputs)) {
-        if (input_id == flow$inputs[[j]]$id) {
-          step_inputs[[i]]$source <- flow$inputs[[j]]$id
-          found_match <- TRUE
-          break
-        }
+    j <- 1
+    while(!found_match && (j <= nrow(flow_inputs))) {
+      j_input <- flow_inputs[j, ]
+      if (input_id == j_input$id) {
+        step_inputs[i, ]$source <- j_input$id
+        found_match <- TRUE
+        break
       }
+      j <- j + 1
     }
-    
     # If still no match found, append the input to the workflow
     if (!found_match) {
-      flow$inputs <- append(flow$inputs, list(step_inputs[[i]]))
+      new_inputs <- rbind(new_inputs, step_inputs[i, ])
     }
   }
-  
+  flow$inputs <- rbind(flow_inputs, new_inputs)
   # Handle outputs
-  for (i in seq_along(step_outputs)) {
-    output_id <- step_outputs[[i]]$id
+  for (i in 1:nrow(step_outputs)) {
+    output_id <- step_outputs[i, ]$id
     
     # Check if the output already exists in the workflow
-    output_exists <- any(sapply(flow$outputs, `[[`, "id") == output_id)
+    output_exists <- any(flow_outputs$id == output_id)
     
     # If not, append the output to the workflow
     if (!output_exists) {
-      flow$outputs <- append(flow$outputs, list(step_outputs[[i]]))
+      flow$outputs <- rbind(flow_outputs, step_outputs[i, ])
     }
   }
+  # # Generate a hash from the input step id
+  # hash <- digest(step$id, algo = "md5")
+  # 
+  # # Convert the hash to a numeric value and take the first 3 digits
+  # hash_numeric <- as.numeric(substr(gsub("[^0-9]", "", hash), 1, 3))
+  # 
+  # # Append the step at the target position
+  # step_steps$id <- paste(step_steps$id, hash_numeric, sep = "_")
+  # Split flow_steps at the target position
+  if (target_position < 1) {
+    flow_steps_l <- data.frame()
+  } else {
+    flow_steps_l <- flow_steps %>% slice(1:target_position)
+  }
   
-  # Append the step at the target position
-  flow$steps <- append(flow$steps, list(step), after = target_position - 1)
-  
+  if (target_position + 1 > nrow(flow_steps)) {
+    flow_steps_r <- data.frame()
+  } else {
+    flow_steps_r <- flow_steps %>% slice((target_position + 1):n())
+  }
+  # Combine the dataframes
+  flow$steps <- rbind(flow_steps_l, step_steps, flow_steps_r)
+
   return(flow)
 }
 
@@ -229,7 +267,7 @@ parse_inputs <- function(x) {
     return(NULL)
   }
   inputs <- x$inputs
-  if (is.list(inputs)) inputs <- as.data.frame(dplyr::bind_rows(inputs))
+  if (is.list(inputs)) inputs <- as.data.frame(inputs)
   return(inputs)
 }
 
@@ -244,7 +282,6 @@ parse_outputs <- function(x) {
   if (is.null(x$outputs)) {
     return(NULL)
   }
-  
   outputs <- x$outputs
   if (is.list(outputs)) outputs <- as.data.frame(outputs)
   return(outputs)
@@ -261,7 +298,9 @@ parse_steps <- function(x) {
   if (is.null(x$steps)) {
     return(NULL)
   }
-  return(x$steps)
+  steps <- x$steps
+  if (is.list(steps)) steps <- as.data.frame(steps)
+  return(steps)
 }
 
 #' Get edges from outputs
@@ -283,7 +322,8 @@ edges_outputs <- function(output_source, outputs) {
     stringsAsFactors = FALSE
   )
   
-  for (i in 1:length(outputs$id)) {
+  i <- 1
+  while (i <= length(outputs$id)) {
     if (grepl("/", output_source[i])) {
       val_vec <- strsplit(output_source[i], "/")[[1]]
       df[i, "from"] <- val_vec[1]
@@ -298,6 +338,7 @@ edges_outputs <- function(output_source, outputs) {
       df[i, "port_to"] <- NA
       df[i, "type"] <- "step_to_output"
     }
+    i <- i + 1
   }
   return(df)
 }

@@ -1,0 +1,12 @@
+{
+  "class": "Workflow",
+  "doc": "",
+  "label": "",
+  "id": "",
+  "namespace": {
+    "sms": "shinymagniying"
+  },
+  "inputs": [],
+  "outputs": [],
+  "steps": []
+}

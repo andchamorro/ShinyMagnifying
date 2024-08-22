@@ -1,0 +1,74 @@
+{
+  "class": "Step",
+  "doc": "",
+  "label": "",
+  "id" : "load_single_cell_data",
+  "namespace": {
+    "sms": "shinymagniying"
+  },
+  "inputs": [
+    {
+      "id": "in_counts",
+      "type": "File",
+      "label": "Gene-cell count matrices",
+      "doc": "Gene-cell count matrices."
+    },
+    {
+      "id": "output_name_prefix",
+      "type": "string?",
+      "label": "Output name prefix",
+      "doc": "If this parameter is not specified, sample id from metadata will be used as output name prefix."
+    },
+    {
+      "id": "project",
+      "type": "string?",
+      "label": "Project descriptor",
+      "doc": "Project descriptor."
+    }
+  ],
+  "outputs": [
+    {
+      "id": "out_seurat",
+      "outputSource": [
+        "load_single_cell_data/out_seurat_object"
+      ],
+      "fileTypes": "RDS",
+      "type": "File?",
+      "label": "Output seurat object",
+      "doc": "Output seurat object."
+    }
+  ],
+  "steps": [
+    {
+      "id": "load_single_cell_data",
+      "in": [
+        {
+          "id": "in_counts",
+          "source": "in_counts"
+        },
+        {
+          "id": "output_name_prefix",
+          "source": "output_name_prefix"
+        },
+        {
+          "id": "project",
+          "source": "project"
+        }
+      ],
+      "out": [
+        {
+          "id": "out_seurat_object"
+        }
+      ],
+      "module": [
+        {
+          "id": "load_single_cell_data",
+          "ui": "dataInput",
+          "server": "dataServer"
+        }
+      ],
+      "run": {},
+      "label": "Load Single-Cell Data"
+    }
+  ]
+}
