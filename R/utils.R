@@ -13,6 +13,22 @@ drop_na <- function(df) {
   df[rowSums(is.na(df)) != ncol(df), ]
 }
 
+# Function to read JSON files and extract labels
+get_labels <- function(files) {
+  labels <- sapply(files, function(file) {
+    format <- tools::file_ext(file)
+    if (format == "yaml") {
+      data <- yaml::read_yaml(file)
+    }
+    if (format == "json") {
+      data <- jsonlite::fromJSON(file)
+    }
+    data$label
+  })
+  names(files) <- labels
+  return(files)
+}
+
 unnest_wider <- function(df, cols, names_sep = ".") {
   # Check if cols is a character vector
   if (!is.character(cols)) {

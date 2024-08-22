@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "doc": "",
-  "label": "",
+  "label": "void",
   "id": "",
   "namespace": {
     "sms": "shinymagniying"

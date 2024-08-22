@@ -41,8 +41,8 @@ visualizeNetwork <- function(cwl, hierarchical = TRUE, direction = "LR", separat
     visOptions(highlightNearest = TRUE,
                nodesIdSelection = list(
                  enabled = TRUE,
-                 style = 'visibility: hidden; width: 150px; height: 26px'
-               ))
+                 style = 'width: 150px; height: 26px'
+    ))
 }
 
 #' Read CWL from file
@@ -138,6 +138,11 @@ write_cwl <- function(cwl_content, file_path, format = c("json", "yaml"), ...) {
 #' @export
 append_step <- function(flow, step, target_step = NULL) {
   
+  # Function to extract suffix before "in_" or "out_"
+  extract_suffix <- function(id, pattern) {
+    sub(pattern, "", id)
+  }
+  
   # Extract the inputs, outputs and steps
   step_inputs <- step %>% parse_inputs()
   step_outputs <- step %>% parse_outputs()
@@ -147,30 +152,18 @@ append_step <- function(flow, step, target_step = NULL) {
   flow_outputs <- flow %>% parse_outputs()
   flow_steps <- flow %>% parse_steps()
   
-  if (is.null(target_step) || target_step == "") {
-    # Just append to the end of the flow
-    target_position <- nrow(flow_steps)
-  } else {
+  if (!is.null(target_step) && target_step != "") {
     # Find the position of the target step
     target_position <- which.max(flow_steps$id == target_step)
-  }
-  
-  # Function to extract suffix before "in_" or "out_"
-  extract_suffix <- function(id, pattern) {
-    sub(pattern, "", id)
-  }
-  
-  # Handle inputs
-  new_inputs <- data.frame()
-  for (i in 1:nrow(step_inputs)) {
-    input_id <- step_inputs[i, ]$id
-    input_suffix <- extract_suffix(input_id, "in_")
-    # Check if the input matches the output of any existing step
-    found_match <- FALSE
-    j <- 1
-    while(!found_match && (j <= nrow(flow_steps))) {
-      j_step_id <- flow_steps[j, ]$id
-      j_step_out <- as.data.frame(flow_steps[j, ]$out)
+    # Handle inputs
+    new_inputs <- data.frame()
+    for (i in 1:nrow(step_inputs)) {
+      input_id <- step_inputs[i, ]$id
+      input_suffix <- extract_suffix(input_id, "in_")
+      # Check if the input matches the output of any existing step
+      found_match <- FALSE
+      j_step_id <- flow_steps[target_position, ]$id
+      j_step_out <- as.data.frame(flow_steps[target_position, ]$out)
       k <- 1
       while(!found_match && (k <= nrow(j_step_out))) {
         output_id <- j_step_out[k, ]
@@ -182,36 +175,87 @@ append_step <- function(flow, step, target_step = NULL) {
         }
         k <- k + 1
       }
-      if (found_match) break
-      j <- j + 1
-    }
-    # If no match found, check if the input matches an existing input in the workflow
-    j <- 1
-    while(!found_match && (j <= nrow(flow_inputs))) {
-      j_input <- flow_inputs[j, ]
+      # If no match found, check if the input matches an existing input in the workflow
+      j_input <- flow_inputs[target_position, ]
       if (input_id == j_input$id) {
         step_inputs[i, ]$source <- j_input$id
         found_match <- TRUE
-        break
       }
-      j <- j + 1
+      # If still no match found, append the input to the workflow
+      if (!found_match) {
+        new_inputs <- rbind(new_inputs, step_inputs[i, ])
+      }
     }
-    # If still no match found, append the input to the workflow
-    if (!found_match) {
-      new_inputs <- rbind(new_inputs, step_inputs[i, ])
+    flow$inputs <- rbind(flow_inputs, new_inputs)
+    # Handle outputs
+    for (i in 1:nrow(step_outputs)) {
+      output_id <- step_outputs[i, ]$id
+      
+      # Check if the output already exists in the workflow
+      output_exists <- any(flow_outputs$id == output_id)
+      
+      # If not, append the output to the workflow
+      if (!output_exists) {
+        flow$outputs <- rbind(flow_outputs, step_outputs[i, ])
+      }
     }
-  }
-  flow$inputs <- rbind(flow_inputs, new_inputs)
-  # Handle outputs
-  for (i in 1:nrow(step_outputs)) {
-    output_id <- step_outputs[i, ]$id
+  } else {
+    # Just append to the end of the flow
+    target_position <- nrow(flow_steps)
     
-    # Check if the output already exists in the workflow
-    output_exists <- any(flow_outputs$id == output_id)
-    
-    # If not, append the output to the workflow
-    if (!output_exists) {
-      flow$outputs <- rbind(flow_outputs, step_outputs[i, ])
+    # Handle inputs
+    new_inputs <- data.frame()
+    for (i in 1:nrow(step_inputs)) {
+      input_id <- step_inputs[i, ]$id
+      input_suffix <- extract_suffix(input_id, "in_")
+      # Check if the input matches the output of any existing step
+      found_match <- FALSE
+      j <- 1
+      while(!found_match && (j <= nrow(flow_steps))) {
+        j_step_id <- flow_steps[j, ]$id
+        j_step_out <- as.data.frame(flow_steps[j, ]$out)
+        k <- 1
+        while(!found_match && (k <= nrow(j_step_out))) {
+          output_id <- j_step_out[k, ]
+          output_suffix <- extract_suffix(output_id, "out_")
+          if (input_suffix == output_suffix) {
+            step_inputs[i, ]$source <- paste(j_step_id, output_id, sep = "/")
+            found_match <- TRUE
+            break
+          }
+          k <- k + 1
+        }
+        if (found_match) break
+        j <- j + 1
+      }
+      # If no match found, check if the input matches an existing input in the workflow
+      j <- 1
+      while(!found_match && (j <= nrow(flow_inputs))) {
+        j_input <- flow_inputs[j, ]
+        if (input_id == j_input$id) {
+          step_inputs[i, ]$source <- j_input$id
+          found_match <- TRUE
+          break
+        }
+        j <- j + 1
+      }
+      # If still no match found, append the input to the workflow
+      if (!found_match) {
+        new_inputs <- rbind(new_inputs, step_inputs[i, ])
+      }
+    }
+    flow$inputs <- rbind(flow_inputs, new_inputs)
+    # Handle outputs
+    for (i in 1:nrow(step_outputs)) {
+      output_id <- step_outputs[i, ]$id
+      
+      # Check if the output already exists in the workflow
+      output_exists <- any(flow_outputs$id == output_id)
+      
+      # If not, append the output to the workflow
+      if (!output_exists) {
+        flow$outputs <- rbind(flow_outputs, step_outputs[i, ])
+      }
     }
   }
   # # Generate a hash from the input step id
@@ -237,7 +281,7 @@ append_step <- function(flow, step, target_step = NULL) {
   # Combine the dataframes
   flow$steps <- rbind(flow_steps_l, step_steps, flow_steps_r)
 
-  return(flow)
+  return(list(cwl=flow, step_id = step_steps$id))
 }
 
 

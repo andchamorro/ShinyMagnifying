@@ -1,12 +1,49 @@
 {
   "class": "Step",
   "doc": "",
-  "label": "",
+  "label": "Normalisation Transformation and PCA",
   "id": "normalisation_transformation_and_pca",
   "namespace": {
     "sms": "shinymagniying"
   },
-  "inputs": [],
+  "inputs": [
+    {
+      "id": "section_method",
+      "type": "string?",
+      "label": "Section Method",
+      "doc": "How to choose top variable features. Choose one of : \n\t 'vst': First, fits a line to the relationship of log(variance) and log(mean) using local polynomial regression (loess). Then standardizes the feature values using the observed mean and expected variance (given by the fitted line). Feature variance is then calculated on the standardized values after clipping to a maximum (see clip.max parameter). \n\t      'mean.var.plot' (mvp): First, uses a function to calculate average expression (mean.function) and dispersion (dispersion.function) for each feature. Next, divides features into num.bin (deafult 20) bins based on their average expression, and calculates z-scores for dispersion within each bin. The purpose of this is to identify variable features while controlling for the strong relationship between variability and average expression\n\t'dispersion' (disp): selects the genes with the highest dispersion values"
+    },
+    {
+      "id": "nfeatures",
+      "type": "int?",
+      "label": "Number of features",
+      "doc": "Number of features to select as top variable features; only used when selection.method is set to 'dispersion' or 'vst'"
+    },
+    {
+      "id": "mean_low",
+      "type": "float?",
+      "label": "Mean Low",
+      "doc": "The low-cutoffs for feature means"
+    },
+    {
+      "id": "mean_high",
+      "type": "float?",
+      "label": "Mean High",
+      "doc": "The high-cutoffs for feature means"
+    },
+    {
+      "id": "dispersion_low",
+      "type": "float?",
+      "label": "Dispersion Low",
+      "doc": "The low-cutoffs for feature dispersions"
+    },
+    {
+      "id": "dispersion_high",
+      "type": "float?",
+      "label": "Dispersion High",
+      "doc": "The high-cutoffs for feature dispersions"
+    }
+  ],
   "outputs": [],
   "steps": [
     {
@@ -15,6 +52,30 @@
         {
           "id": "in_filtered_seurat",
           "source": "quality_control/out_filtered_seurat"
+        },
+        {
+          "id": "section_method",
+          "source": "section_method"
+        },
+        {
+          "id": "nfeatures",
+          "source": "nfeatures"
+        },
+        {
+          "id": "mean_low",
+          "source": "mean_low"
+        },
+        {
+          "id": "mean_high",
+          "source": "mean_high"
+        },
+        {
+          "id": "dispersion_low",
+          "source": "dispersion_low"
+        },
+        {
+          "id": "dispersion_high",
+          "source": "dispersion_high"
         }
       ],
       "out": [

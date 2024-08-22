@@ -32,9 +32,9 @@ ui <- page_navbar(
                   nav_panel("Workflow", card(
                     fileInput("wl_file", "Choose a file"),
                     selectInput("wl_file_options", 
-                                "Choose an option", 
-                                choices = list.files("workflows"),
-                                selected = "void_workflow.json")
+                                "Choose an option",
+                                choices = get_labels(list.files("workflows", pattern = "\\.(json|yaml)$", full.names = TRUE)),
+                                selected = "workflows/void_workflow.json")
                   )),
                   nav_panel("Step selected", uiOutput("dynamic_module"))
                 ),
@@ -103,7 +103,7 @@ server <- function(input, output, session) {
       req(input$wl_file)
       cwl_manager(read_cwl(file = input$wl_file$datapath))
     } else if (!is.null(input$wl_file_options)) {
-      cwl_manager(read_cwl(file = file.path("workflows", input$wl_file_options)))
+      cwl_manager(read_cwl(file = file.path(input$wl_file_options)))
     }}) %>% bindEvent(input$wl_file, input$wl_file_options)
   
   observe({
@@ -125,7 +125,7 @@ server <- function(input, output, session) {
         cwl_manager() %>% visualizeNetwork()
       })
       
-      observeEvent(input$cwl_network_selected, {
+      observe({
         nav_select("container", "Step selected")
         selected_node <- input$cwl_network_selected
         if (!is.null(selected_node) && selected_node %in% steps$id) {
@@ -141,7 +141,8 @@ server <- function(input, output, session) {
             )
           })
         }
-      })
+        visNetworkProxy("cwl_network") %>% visFocus(input$cwl_network_selected, scale = 0.5)
+      }) %>% bindEvent(input$cwl_network_selected)
       
       output$download_network <- downloadHandler(
         filename = function() {
@@ -155,13 +156,17 @@ server <- function(input, output, session) {
     }
   })
   
+  # observe({
+  #   visNetworkProxy("cwl_network")
+  # }) %>% bindEvent(input$cwl_network_initialized)
+  
   observe({
       req(input$wl_2add)
       selected_node <- input$cwl_network_selected
-      cwl <- cwl_manager() %>% append_step(
-        read_cwl(file = file.path("workflows/steps", input$wl_2add)),
+      append_r <- cwl_manager() %>% append_step(
+        read_cwl(file = file.path(input$wl_2add)),
         target_step = selected_node)
-      cwl_manager(cwl)
+      cwl_manager(append_r$cwl)
       removeModal()
   }) %>% bindEvent(input$wl_add)
   
@@ -171,8 +176,8 @@ server <- function(input, output, session) {
       title = "Select a Step",
       selectInput("wl_2add", 
                   "Choose a step", 
-                  choices = list.files("workflows/steps"),
-                  selected = "void_step.json"),
+                  choices = get_labels(list.files("workflows/steps", pattern = "\\.(json|yaml)$", full.names = TRUE)),
+                  selected = "workflows/steps/void_step.json"),
       footer = tagList(
         modalButton("Cancel"),
         actionButton("wl_add", "Add")

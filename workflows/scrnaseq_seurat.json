@@ -2,7 +2,7 @@
   "class": "Workflow",
   "cwlVersion": "v1.2",
   "doc": "",
-  "label": "Clustering and Gene Marker Identification with Seurat 3.2.2",
+  "label": "Clustering and Gene Marker Identification with Seurat 5",
   "$namespaces": {
     "sms": "shinymagniying"
   },
@@ -229,7 +229,7 @@
         "server": "qualitycontrolServer"
       }],
       "run": {},
-      "label": " Quality Control"
+      "label": "Quality Control"
     },
     {
       "id": "normalisation_transformation_and_pca_1",
